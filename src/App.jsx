@@ -1,68 +1,29 @@
-import { useState } from 'react'
-import { model } from './firebase/firebase'
-import './App.css'
+import Chatbot from './components/Chatbot'
+import MapDisplay from './components/MapDisplay'
 
 function App() {
-  const [messages, setMessages] = useState([])
-  const [inputText, setInputText] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const sendMessage = async () => {
-    if (!inputText.trim() || loading) return
-
-    const userMessage = { type: 'user', text: inputText }
-    setMessages(prev => [...prev, userMessage])
-    setInputText('')
-    setLoading(true)
-
-    try {
-      const result = await model.generateContent(inputText)
-      const response = await result.response
-      const text = response.text()
-      const botMessage = { type: 'bot', text: text }
-      setMessages(prev => [...prev, botMessage])
-    } catch (err) {
-      console.error('Error generating text:', err)
-      const errorMessage = { type: 'bot', text: 'Sorry, I encountered an error. Please check your Firebase configuration.' }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setLoading(false)
-    }
+  const appStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    padding: '20px',
+    gap: '30px',
+    backgroundColor: '#f5f5f5'
   }
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      sendMessage()
-    }
+  const componentStyle = {
+    flex: 1,
+    maxWidth: '500px'
   }
 
   return (
-    <div className="chatbot-container">
-      <div className="chat-box">
-        {messages.map((message, index) => (
-          <div key={index} className={`message ${message.type}`}>
-            {message.text}
-          </div>
-        ))}
-        {loading && (
-          <div className="message bot loading-message">
-            Thinking...
-          </div>
-        )}
+    <div style={appStyle}>
+      <div style={componentStyle}>
+        <Chatbot />
       </div>
-      
-      <div className="input-container">
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type your message..."
-          disabled={loading}
-        />
-        <button onClick={sendMessage} disabled={loading || !inputText.trim()}>
-          Send
-        </button>
+      <div style={componentStyle}>
+        <MapDisplay />
       </div>
     </div>
   )
