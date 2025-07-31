@@ -1,35 +1,72 @@
 import { useState, useEffect, useRef } from 'react'
 
+// Global flag to prevent multiple script loads
+let isGoogleMapsLoading = false
+let isGoogleMapsLoaded = false
+
 function MapDisplay() {
   const MAPS_API_KEY = import.meta.env.VITE_MAPS_API_KEY
   const [selectedLocation, setSelectedLocation] = useState('San Francisco, CA')
   const [inputValue, setInputValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [transportMode, setTransportMode] = useState('walking') // Default to walk
   const autocompleteService = useRef(null)
   const debounceTimer = useRef(null)
 
   useEffect(() => {
-    if (MAPS_API_KEY && window.google) {
-      autocompleteService.current = new window.google.maps.places.AutocompleteService()
-    }
-  }, [MAPS_API_KEY])
-
-  useEffect(() => {
     if (!MAPS_API_KEY) return
 
+    const initializeAutocomplete = () => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        try {
+          autocompleteService.current = new window.google.maps.places.AutocompleteService()
+          isGoogleMapsLoaded = true
+        } catch (error) {
+          console.error('Error initializing Google Maps Autocomplete:', error)
+        }
+      }
+    }
+
+    // Check if already loaded
+    if (isGoogleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) {
+      initializeAutocomplete()
+      return
+    }
+
+    // Check if already loading
+    if (isGoogleMapsLoading) {
+      // Wait for the loading to complete
+      const checkLoaded = setInterval(() => {
+        if (isGoogleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) {
+          clearInterval(checkLoaded)
+          initializeAutocomplete()
+        }
+      }, 100)
+      return () => clearInterval(checkLoaded)
+    }
+
+    // Load the script
+    isGoogleMapsLoading = true
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&libraries=places`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&libraries=places&loading=async`
     script.async = true
     script.onload = () => {
-      autocompleteService.current = new window.google.maps.places.AutocompleteService()
+      isGoogleMapsLoading = false
+      initializeAutocomplete()
     }
+    script.onerror = () => {
+      isGoogleMapsLoading = false
+      console.error('Failed to load Google Maps script')
+    }
+    
     document.head.appendChild(script)
 
     return () => {
-      const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`)
-      if (existingScript) {
-        document.head.removeChild(existingScript)
+      // Don't remove the script as it might be used by other components
+      // Just clean up our references
+      if (autocompleteService.current) {
+        autocompleteService.current = null
       }
     }
   }, [MAPS_API_KEY])
@@ -96,7 +133,18 @@ function MapDisplay() {
   const inputContainerStyle = {
     position: 'relative',
     marginBottom: '20px',
-    width: '60%'
+    width: '100%'
+  }
+
+  const inputRowStyle = {
+    display: 'flex',
+    gap: '15px',
+    alignItems: 'flex-start'
+  }
+
+  const inputFieldContainerStyle = {
+    position: 'relative',
+    flex: '1'
   }
 
   const inputStyle = {
@@ -106,6 +154,32 @@ function MapDisplay() {
     borderRadius: '8px',
     fontSize: '16px',
     boxSizing: 'border-box'
+  }
+
+  const modeButtonsStyle = {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  }
+
+  const modeButtonStyle = {
+    padding: '10px 16px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#ccc',
+    borderRadius: '8px',
+    backgroundColor: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s ease'
+  }
+
+  const activeModeButtonStyle = {
+    ...modeButtonStyle,
+    backgroundColor: '#0066cc',
+    color: 'white',
+    borderColor: '#0066cc'
   }
 
   const suggestionsStyle = {
@@ -147,33 +221,58 @@ function MapDisplay() {
       <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>Map Display</h3>
       
       <div style={inputContainerStyle}>
-        <input
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onKeyPress={handleKeyPress}
-          placeholder="Enter starting location..."
-          style={inputStyle}
-        />
-        {showSuggestions && suggestions.length > 0 && (
-          <div style={suggestionsStyle}>
-            {suggestions.map((suggestion, index) => (
-              <div
-                key={suggestion.place_id}
-                style={suggestionStyle}
-                onClick={() => handleSuggestionClick(suggestion)}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#f5f5f5'
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'white'
-                }}
-              >
-                {suggestion.description}
+        <div style={inputRowStyle}>
+          <div style={inputFieldContainerStyle}>
+            <input
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyPress={handleKeyPress}
+              placeholder="Enter starting location..."
+              style={inputStyle}
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={suggestionsStyle}>
+                {suggestions.map((suggestion, index) => (
+                  <div
+                    key={suggestion.place_id}
+                    style={suggestionStyle}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#f5f5f5'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = 'white'
+                    }}
+                  >
+                    {suggestion.description}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+          
+          <div style={modeButtonsStyle}>
+            <button
+              style={transportMode === 'driving' ? activeModeButtonStyle : modeButtonStyle}
+              onClick={() => setTransportMode('driving')}
+            >
+              Car
+            </button>
+            <button
+              style={transportMode === 'bicycling' ? activeModeButtonStyle : modeButtonStyle}
+              onClick={() => setTransportMode('bicycling')}
+            >
+              Bike
+            </button>
+            <button
+              style={transportMode === 'walking' ? activeModeButtonStyle : modeButtonStyle}
+              onClick={() => setTransportMode('walking')}
+            >
+              Walk
+            </button>
+          </div>
+        </div>
       </div>
 
       {mapUrl ? (
