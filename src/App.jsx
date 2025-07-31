@@ -1,7 +1,16 @@
+import { useState } from 'react'
 import Chatbot from './components/Chatbot'
 import MapDisplay from './components/MapDisplay'
 
 function App() {
+  const [transportMode, setTransportMode] = useState('walking')
+  const [selectedLocation, setSelectedLocation] = useState('San Francisco, CA')
+  const [routePreferences, setRoutePreferences] = useState(null)
+
+  const handleRoutePreferences = (preferences) => {
+    setRoutePreferences(preferences)
+    console.log('Route preferences received:', preferences)
+  }
   const appStyle = {
     display: 'flex',
     justifyContent: 'center',
@@ -27,10 +36,18 @@ function App() {
   return (
     <div style={appStyle}>
       <div style={chatbotContainerStyle}>
-        <Chatbot />
+        <Chatbot 
+          transportMode={transportMode}
+          selectedLocation={selectedLocation}
+          onRoutePreferences={handleRoutePreferences}
+        />
       </div>
       <div style={mapContainerStyle}>
-        <MapDisplay />
+        <MapDisplay 
+          onTransportModeChange={setTransportMode}
+          onLocationChange={setSelectedLocation}
+          routePreferences={routePreferences}
+        />
       </div>
     </div>
   )

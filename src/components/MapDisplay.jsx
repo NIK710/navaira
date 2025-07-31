@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 let isGoogleMapsLoading = false
 let isGoogleMapsLoaded = false
 
-function MapDisplay() {
+function MapDisplay({ onTransportModeChange, onLocationChange, routePreferences }) {
   const MAPS_API_KEY = import.meta.env.VITE_MAPS_API_KEY
   const [selectedLocation, setSelectedLocation] = useState('San Francisco, CA')
   const [inputValue, setInputValue] = useState('')
@@ -108,6 +108,10 @@ function MapDisplay() {
     setInputValue(suggestion.description)
     setShowSuggestions(false)
     setSuggestions([])
+    // Notify parent component
+    if (onLocationChange) {
+      onLocationChange(suggestion.description)
+    }
   }
 
   const handleKeyPress = (e) => {
@@ -115,6 +119,18 @@ function MapDisplay() {
       setSelectedLocation(inputValue)
       setShowSuggestions(false)
       setSuggestions([])
+      // Notify parent component
+      if (onLocationChange) {
+        onLocationChange(inputValue)
+      }
+    }
+  }
+
+  const handleTransportModeChange = (mode) => {
+    setTransportMode(mode)
+    // Notify parent component
+    if (onTransportModeChange) {
+      onTransportModeChange(mode)
     }
   }
 

@@ -1,32 +1,91 @@
-import { useState } from 'react'
-import { model } from '../firebase/firebase'
+import { useState, useEffect } from 'react'
+import { generateChatbotResponse, generateRoutePreferences } from '../services/gemini'
 import ReactMarkdown from "react-markdown";
 
-
-
-
-function Chatbot() {
+function Chatbot({ transportMode, selectedLocation, onRoutePreferences }) {
   const [messages, setMessages] = useState([])
   const [inputText, setInputText] = useState('')
   const [loading, setLoading] = useState(false)
+  const [conversationStage, setConversationStage] = useState('welcome') // welcome, gathering, complete
+  const [userResponses, setUserResponses] = useState([])
+  const [routePreferences, setRoutePreferences] = useState(null)
+
+  // Welcome message on component mount
+  useEffect(() => {
+    const welcomeMessage = {
+      type: 'bot',
+      text: "Hi! I'm here to help you build a route for the perfect walk, bike, or drive. Tell me what kind of places or experiences you want to include — nature, food, quiet paths, scenic views, etc."
+    }
+    setMessages([welcomeMessage])
+  }, [])
 
   const sendMessage = async () => {
     if (!inputText.trim() || loading) return
 
     const userMessage = { type: 'user', text: inputText }
-    setMessages(prev => [...prev, userMessage])
+    const newMessages = [...messages, userMessage]
+    setMessages(newMessages)
+    
+    // Store user response
+    const newUserResponses = [...userResponses, inputText]
+    setUserResponses(newUserResponses)
+    
     setInputText('')
     setLoading(true)
 
     try {
-      const result = await model.generateContent(inputText)
-      const response = await result.response
-      const text = response.text()
-      const botMessage = { type: 'bot', text: text }
+      let botResponse
+      
+      // Determine conversation flow
+      if (conversationStage === 'welcome' || conversationStage === 'gathering') {
+        // Check if we have enough information (3+ responses or distance mentioned)
+        const hasDistanceInfo = newUserResponses.some(response => 
+          /\b(\d+\s*(miles?|mi|km|kilometers?|minutes?|min|hours?|hr))\b/i.test(response)
+        )
+        
+        if (newUserResponses.length >= 3 || (newUserResponses.length >= 2 && hasDistanceInfo)) {
+          // Generate final preferences
+          setConversationStage('complete')
+          const combinedInput = newUserResponses.join(' ')
+          
+          // Generate route preferences using Gemini
+          const preferences = await generateRoutePreferences(combinedInput, transportMode)
+          setRoutePreferences(preferences)
+          
+          // Notify parent component
+          if (onRoutePreferences) {
+            onRoutePreferences(preferences)
+          }
+          
+          botResponse = `Perfect! I've analyzed your preferences and created a route profile. Your personalized ${transportMode} route is ready to be generated!`
+        } else {
+          // Generate follow-up questions
+          setConversationStage('gathering')
+          
+          // Ask specific follow-up questions based on what's missing
+          let followUpPrompt = inputText
+          if (newUserResponses.length === 1) {
+            followUpPrompt += " Now, could you tell me more about your preferences? For example, do you prefer busy areas with lots to see, or quieter, more peaceful routes?"
+          } else if (newUserResponses.length === 2 && !hasDistanceInfo) {
+            followUpPrompt += " How far or how long do you want this trip to be? For example, a quick 15-minute walk, a 2-hour bike ride, or something else?"
+          }
+          
+          botResponse = await generateChatbotResponse(followUpPrompt, newMessages, transportMode, selectedLocation)
+        }
+      } else {
+        // Conversation complete, just respond normally
+        botResponse = await generateChatbotResponse(inputText, newMessages, transportMode, selectedLocation)
+      }
+      
+      const botMessage = { type: 'bot', text: botResponse }
       setMessages(prev => [...prev, botMessage])
+      
     } catch (err) {
-      console.error('Error generating text:', err)
-      const errorMessage = { type: 'bot', text: 'Sorry, I encountered an error. Please check your Firebase configuration.' }
+      console.error('Error in chatbot conversation:', err)
+      const errorMessage = { 
+        type: 'bot', 
+        text: 'Sorry, I encountered an error. Could you please try again?' 
+      }
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setLoading(false)
