@@ -1,34 +1,70 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { model } from './firebase/firebase'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [messages, setMessages] = useState([])
+  const [inputText, setInputText] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const sendMessage = async () => {
+    if (!inputText.trim() || loading) return
+
+    const userMessage = { type: 'user', text: inputText }
+    setMessages(prev => [...prev, userMessage])
+    setInputText('')
+    setLoading(true)
+
+    try {
+      const result = await model.generateContent(inputText)
+      const response = await result.response
+      const text = response.text()
+      const botMessage = { type: 'bot', text: text }
+      setMessages(prev => [...prev, botMessage])
+    } catch (err) {
+      console.error('Error generating text:', err)
+      const errorMessage = { type: 'bot', text: 'Sorry, I encountered an error. Please check your Firebase configuration.' }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      sendMessage()
+    }
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="chatbot-container">
+      <div className="chat-box">
+        {messages.map((message, index) => (
+          <div key={index} className={`message ${message.type}`}>
+            {message.text}
+          </div>
+        ))}
+        {loading && (
+          <div className="message bot loading-message">
+            Thinking...
+          </div>
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+      
+      <div className="input-container">
+        <input
+          type="text"
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Type your message..."
+          disabled={loading}
+        />
+        <button onClick={sendMessage} disabled={loading || !inputText.trim()}>
+          Send
         </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   )
 }
 

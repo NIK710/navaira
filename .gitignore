@@ -3,49 +3,37 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# Firebase debug logs
+firebase-debug.log
 
 # Dependency directories
 node_modules/
 
-# Build outputs
+# Build output
 dist/
 dist-ssr/
 
-# Local env files 
+# Environment variables and credentials
 .env
 .env.*.local
-.env.local
+firebase-service-account.json
 
-# Firebase
-.firebase/
-firebase-debug.log
-.firebaserc.local
-
-# Vite cache
-.vite/
-
-# VS Code settings
-.vscode/*
-!.vscode/extensions.json
-
-# IntelliJ / WebStorm
+# Editor settings
+.vscode/
 .idea/
-
-# macOS
 .DS_Store
 
-# Windows
+# Local config files
+*.local
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Optional: other temp files
-*.tmp
-*.bak
-*.backup
+# Optional OS-specific files
+Thumbs.db
 
