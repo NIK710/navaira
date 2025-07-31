@@ -44,10 +44,11 @@ function Chatbot() {
     border: '1px solid #ccc',
     borderRadius: '12px',
     padding: '20px',
-    height: '500px',
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: 'Arial, sans-serif'
+    fontFamily: 'Arial, sans-serif',
+    boxSizing: 'border-box'
   }
 
   const chatBoxStyle = {

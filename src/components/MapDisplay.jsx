@@ -86,23 +86,25 @@ function MapDisplay() {
     border: '1px solid #ccc',
     borderRadius: '12px',
     padding: '20px',
-    height: '500px',
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    fontFamily: 'Arial, sans-serif'
+    fontFamily: 'Arial, sans-serif',
+    boxSizing: 'border-box'
   }
 
   const inputContainerStyle = {
     position: 'relative',
-    marginBottom: '15px'
+    marginBottom: '20px',
+    width: '60%'
   }
 
   const inputStyle = {
     width: '100%',
-    padding: '10px',
+    padding: '12px 16px',
     border: '1px solid #ccc',
     borderRadius: '8px',
-    fontSize: '14px',
+    fontSize: '16px',
     boxSizing: 'border-box'
   }
 
