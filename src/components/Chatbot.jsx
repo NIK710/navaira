@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { model } from '../firebase/firebase'
+import ReactMarkdown from "react-markdown";
+
+
+
 
 function Chatbot() {
   const [messages, setMessages] = useState([])
@@ -106,7 +110,11 @@ function Chatbot() {
       <div style={chatBoxStyle}>
         {messages.map((message, index) => (
           <div key={index} style={message.type === 'user' ? userMessageStyle : botMessageStyle}>
-            {message.text}
+            {message.type === 'bot' ? (
+              <ReactMarkdown>{message.text}</ReactMarkdown>
+            ) : (
+              message.text
+            )}
           </div>
         ))}
         {loading && (
@@ -137,5 +145,7 @@ function Chatbot() {
     </div>
   )
 }
+
+
 
 export default Chatbot
